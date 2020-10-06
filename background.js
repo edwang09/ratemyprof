@@ -13,7 +13,7 @@ const STYLE = `
     <style>
     #extensionInjectionContent{
         position: fixed;
-        height: 500px;
+        height: 800px;
         width: 300px;
         right: 10px;
         top: 300px;
@@ -35,24 +35,43 @@ const STYLE = `
     }
     </style>
 `
+
+chrome.tabs.onUpdated.addListener( function (tabId, changeInfo, tab) {
+    if (changeInfo.status == 'complete') {
+
+        chrome.tabs.executeScript(tabId, {
+            file: 'content.js'
+        });
+    }
+})
+
 chrome.runtime.onMessage.addListener(receiver);
 function receiver(request, sender, sendResponse){
-    const name = request.text.replace(/\s/g,"%20")
     const tabid = sender.tab.id
     removeInjection(tabid)
-    const searchlink = "https://www.ratemyprofessors.com/search.jsp?queryBy=teacherName&schoolName=DePaul+university&queryoption=HEADER&query=" + name + "&facetSearch=true";
-    getLink(searchlink).then(link=>{
-        if(link && link.length){
-            const resultlink = `https://www.ratemyprofessors.com${link}`
-            getResult(resultlink).then(result=>{
-                console.log(result)
-                injectResult(result,tabid)
-            })
-        }else{
-            injectResult(null,tabid)
-        }
+    injectTemplate(tabid)
+    const nameList = request.text.map(function(name){
+        return name.replace(/\s/g,"%20")
     })
+    const resultList = nameList.map(function(name){
+        const searchlink = "https://www.ratemyprofessors.com/search.jsp?queryBy=teacherName&schoolName=DePaul+university&queryoption=HEADER&query=" + name + "&facetSearch=true";
+        getLink(searchlink).then(link=>{
+            if(link && link.length){
+                const resultlink = `https://www.ratemyprofessors.com${link}`
+                getResult(resultlink).then(result=>{
+                    console.log(result)
+                    injectResult(result,tabid)
+                })
+            }
+        })
+    })
+    
 }
+
+
+
+
+
 // const request = require('request');
 // const cheerio = require('cheerio');
 // const writeStream = fs.createWriteStream('proffessorData.csv');
@@ -165,24 +184,42 @@ function injectResult(result,tabid){
     const HTML = constructHTML(result)
     const code = `
     if (typeof node === 'undefined'){
+        let node = document.querySelector("div.extensionInjectionWindow")
+        node.innerHTML =\`${HTML}\` + node.innerHTML
+    }else{
+        node = document.querySelector("div.extensionInjectionWindow")
+        node.innerHTML =\`${HTML}\` + node.innerHTML
+    }
+    `
+    chrome.tabs.executeScript(null, {
+        code: code
+      }, function() {
+    if (chrome.runtime.lastError) {
+        console.log('There was an error injecting getLoading script : \n' + chrome.runtime.lastError.message);
+        }
+    });
+}
+function injectTemplate(tabid){
+    const code = `
+    if (typeof node === 'undefined'){
         let node = document.createElement("div")
         node.classList.add("extensionInjectionWindow");
-        node.innerHTML = \`${HTML}${STYLE}\`
+        node.innerHTML = \`${STYLE}\`
         document.querySelector("body").appendChild(node)
     }else{
         node = document.createElement("div")
         node.classList.add("extensionInjectionWindow");
-        node.innerHTML = \`${HTML}${STYLE}\`
+        node.innerHTML = \`${STYLE}\`
         document.querySelector("body").appendChild(node)
     }
     `
     chrome.tabs.executeScript(null, {
         code: code
       }, function() {
-        if (chrome.runtime.lastError) {
-          console.log('There was an error injecting getLoading script : \n' + chrome.runtime.lastError.message);
+    if (chrome.runtime.lastError) {
+        console.log('There was an error injecting getLoading script : \n' + chrome.runtime.lastError.message);
         }
-      });
+    });
 }
 function removeInjection(tabid){
     const code = `

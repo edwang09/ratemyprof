@@ -3,22 +3,30 @@ This gets teachers name from Campusconnect
 */
 
 
-window.addEventListener('mouseup', wordSelected);
+// window.addEventListener('mouseup', wordSelected);
 
-function wordSelected() {
-    let selectedText = window.getSelection().toString();
-    console.log(selectedText);
-    if (selectedText.length>0){
+// function wordSelected() {
+//     let selectedText = window.getSelection().toString();
+//     console.log(selectedText);
+//     if (selectedText.length>0){
+//         let message = {
+//            text: selectedText 
+//         }
+//         chrome.runtime.sendMessage(null, message);
+//     }
+// }
+
+
+function getProfessor() {
+    const professorList = Array.from(document.querySelectorAll("table td.INSTRUCTOR span")).map(function(node){return node.innerHTML})
+    if (professorList.length>0){
         let message = {
-           text: selectedText 
+           text: professorList 
         }
         chrome.runtime.sendMessage(null, message);
     }
 }
-
-
-
-
+getProfessor() 
 
 
 
