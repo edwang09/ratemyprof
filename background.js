@@ -10,18 +10,18 @@ const LNAMEQUERY = ".NameTitle__LastNameWrapper-dowf0z-2.glXOHH"
 const WTAQUERY = ".FeedbackItem__FeedbackNumber-uof32n-1.bGrrmf"
 const LODQUERY = ".FeedbackItem__FeedbackNumber-uof32n-1.bGrrmf"
 const STYLE = `
-    <style>
-    #extensionInjectionContent{
+    div.extensionInjectionWindow{
         position: fixed;
-        height: 800px;
+        height: 600px;
         width: 300px;
         right: 10px;
-        top: 300px;
+        top: 200px;
         padding: 30px 20px;
         background-color: #eeeeee;
         border-radius: 10px;
         box-shadow: 2px 2px 5px #ddd;
         overflow: auto;
+        z-index:1000;
     }
     #extensionInjectionContent h2{
         margin: 20px 0;
@@ -33,12 +33,11 @@ const STYLE = `
         margin: 5px 0;
         font-size: 18px;
     }
-    </style>
 `
 
 chrome.tabs.onUpdated.addListener( function (tabId, changeInfo, tab) {
     if (changeInfo.status == 'complete') {
-
+        console.log("inject")
         chrome.tabs.executeScript(tabId, {
             file: 'content.js'
         });
@@ -67,36 +66,7 @@ function receiver(request, sender, sendResponse){
     })
     
 }
-
-
-
-
-
-// const request = require('request');
-// const cheerio = require('cheerio');
-// const writeStream = fs.createWriteStream('proffessorData.csv');
-// //Figure out how to make the url work!!!!
-// //remove spaces after adding teachers name!
-//  //write to CSV
-// writeStream.write('Teachers Name,rating,percentWTA,difficulty,topcomment \n');
-// request(name, url, (error, response, html) => {
-//     if(!error && response.statusCode ==200){
-//        //console.log(html);
-//         const $ = cheerio.load(html); 
-        
-//         const profTopComment = $('.Comments__StyledComments-dzzyvm-0.dvnRbr');
-//         const profRating = $('.RatingValue__Numerator-qw8sqy-2.gxuTRq');
-//         //const profFirstName = $('.NameTitle__Name-dowf0z-0.jeLOXk');
-//         //const profLastname = $('.NameTitle__LastNameWrapper-dowf0z-2.glXOHH');
-//         const percentWTA = $('.FeedbackItem__FeedbackNumber-uof32n-1.bGrrmf');
-//         const levelOfDiff = $('.FeedbackItem__FeedbackNumber-uof32n-1.bGrrmf');
-        
-//          //write to CSV
-//          writeStream.write(`${name},${profRating},${percentWTA},
-//          ${levelOfDiff},${profTopComment} \n`);
-//         //console.log(profTopComment.html());
-//     }
-// });
+//retrieve professor page link by scraping search page
 function getLink(URL){
     return new Promise((resolve, reject)=>{
         let xhr = new XMLHttpRequest();
@@ -114,6 +84,7 @@ function getLink(URL){
     })
     
 }
+//retrieve professor info link by scraping professor page
 function getResult(URL){
     return new Promise((resolve, reject)=>{
         let xhr = new XMLHttpRequest();
@@ -137,6 +108,7 @@ function getResult(URL){
         }
     })
 }
+//helper function
 function DOMtoString(document_root) {
     if (!document_root){
         return null
@@ -156,6 +128,7 @@ function DOMtoString(document_root) {
     }
     return html;
 }
+//construct html for each professor
 function constructHTML(result){
     if( result){
         return `
@@ -180,6 +153,8 @@ function constructHTML(result){
     </div>
     `
 }
+
+//inject html to current page
 function injectResult(result,tabid){
     const HTML = constructHTML(result)
     const code = `
@@ -199,18 +174,23 @@ function injectResult(result,tabid){
         }
     });
 }
+//inject html result container to current page
 function injectTemplate(tabid){
     const code = `
     if (typeof node === 'undefined'){
         let node = document.createElement("div")
         node.classList.add("extensionInjectionWindow");
-        node.innerHTML = \`${STYLE}\`
+        let style = document.createElement("style")
+        style.innerHTML = \`${STYLE}\`
         document.querySelector("body").appendChild(node)
+        document.querySelector("body").appendChild(style)
     }else{
         node = document.createElement("div")
         node.classList.add("extensionInjectionWindow");
-        node.innerHTML = \`${STYLE}\`
+        let style = document.createElement("style")
+        style.innerHTML = \`${STYLE}\`
         document.querySelector("body").appendChild(node)
+        document.querySelector("body").appendChild(style)
     }
     `
     chrome.tabs.executeScript(null, {
@@ -221,6 +201,7 @@ function injectTemplate(tabid){
         }
     });
 }
+//inject injection if any
 function removeInjection(tabid){
     const code = `
     if (typeof element === 'undefined'){
